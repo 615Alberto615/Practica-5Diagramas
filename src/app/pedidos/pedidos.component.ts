@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import Swal from 'sweetalert2';
+
 interface NSA {
   i: number;
   semilla: number;
@@ -43,15 +44,17 @@ export class PedidosComponent implements OnInit {
     const limite = formValue.limite;
     let currentSeed = semilla;
     let degenerationFound = false;
-    let firstOccurrence: number | null = null;
-    let seedsSet = new Set();
-    if (!Number.isInteger(semilla) || !Number.isInteger(limite) ) {
+    let firstOccurrence: number | undefined;
+    let seedsSet = new Set<number>();
+    const originalSeedLength = currentSeed.toString().length;
+
+    if (!Number.isInteger(semilla) || !Number.isInteger(limite)) {
       Swal.fire({
         title: 'Error',
         text: 'Por favor, ingresa solo números enteros.',
         icon: 'error'
       });
-      return; // Salir del método
+      return;
     }
 
     if (!semilla && !limite) {
@@ -60,36 +63,41 @@ export class PedidosComponent implements OnInit {
         text: 'Por favor, llena todos los campos.',
         icon: 'error'
       });
-      return; // Salir del método
+      return;
     }
-      // Validación: números positivos
-      if (semilla <= 0 || limite <= 0) {
-        Swal.fire({
-          title: 'Error',
-          text: 'Solo se permite números positivos > 0.',
-          icon: 'error'
-        });
-        return; // Salir del método
-      }
-    
-      // Validación: semilla con > 3 dígitos
-      if (semilla.toString().length <= 3) {
-        Swal.fire({
-          title: 'Error',
-          text: 'La semilla debe tener más de 3 dígitos.',
-          icon: 'error'
-        });
-        return; // Salir del método
-      }
+
+    if (semilla <= 0 || limite <= 0) {
+      Swal.fire({
+        title: 'Error',
+        text: 'Solo se permite números positivos > 0.',
+        icon: 'error'
+      });
+      return;
+    }
+
+    if (semilla.toString().length <= 3) {
+      Swal.fire({
+        title: 'Error',
+        text: 'La semilla debe tener más de 3 dígitos.',
+        icon: 'error'
+      });
+      return;
+    }
 
     for (let i = 1; i <= limite; i++) {
       let yi = currentSeed * currentSeed;
       let yiStr = yi.toString();
-      let length = yiStr.length;
-      let xi = parseInt(yiStr.substring((length / 2) - 2, (length / 2) + 2), 10);
-      let ri = xi / 10000;
+      let seedLengthDifference = yiStr.length - originalSeedLength;
+
+      if (seedLengthDifference % 2 !== 0) {
+          yiStr = "0" + yiStr;
+          seedLengthDifference++;
+      }
+
+      let xi = parseInt(yiStr.slice(seedLengthDifference / 2, seedLengthDifference / 2 + originalSeedLength), 10);
+      let ri = xi / Math.pow(10, originalSeedLength);
       let observacion = seedsSet.has(xi) ? 'Secuencia degenerada' : '';
-      
+
       if (seedsSet.has(xi) && !degenerationFound) {
         this.degenerationIteration = i;
         firstOccurrence = Array.from(seedsSet).indexOf(xi) + 1;
@@ -109,8 +117,9 @@ export class PedidosComponent implements OnInit {
 
       currentSeed = xi;
     }
-    if (degenerationFound && firstOccurrence !== null) {
-      this.sequencePeriod = this.degenerationIteration as number - firstOccurrence;
+
+    if (degenerationFound && firstOccurrence !== undefined) {
+      this.sequencePeriod = (this.degenerationIteration as number) - firstOccurrence;
     } else {
       this.degenerationIteration = 'N/A';
       this.sequencePeriod = 'N/A';
@@ -121,7 +130,5 @@ export class PedidosComponent implements OnInit {
       text: 'Se han generado los números aleatorios con éxito.',
       icon: 'success'
     });
-
-
   }
 }

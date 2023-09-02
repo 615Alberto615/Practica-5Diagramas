@@ -48,9 +48,11 @@ export class ProdmedComponent implements OnInit {
     let currentSeed1 = semilla;
     let currentSeed2 = semilla1;
     let seedsSet = new Set();
+   
+    const originalSeedLength = currentSeed1.toString().length;
 
     let degenerationFound = false;
-    let firstOccurrence: number | null = null;
+    let firstOccurrence: number | undefined;
     if (!Number.isInteger(semilla) || !Number.isInteger(semilla1) || !Number.isInteger(limite)) {
       Swal.fire({
         title: 'Error',
@@ -92,11 +94,21 @@ export class ProdmedComponent implements OnInit {
     for (let i = 1; i <= limite; i++) {
       let yi = currentSeed1 * currentSeed2;
       let yiStr = yi.toString();
-      let length = yiStr.length;
-      let xi = parseInt(yiStr.substring((length / 2) - 2, (length / 2) + 2), 10);
-      let ri = xi / 10000;
+      let seedLengthDifference = yiStr.length - originalSeedLength;
+
+      if (seedLengthDifference % 2 !== 0) {
+          yiStr = "0" + yiStr;
+          seedLengthDifference++;
+      }
+
+      let xi = parseInt(yiStr.slice(seedLengthDifference / 2, seedLengthDifference / 2 + originalSeedLength), 10);
+      let ri = xi / Math.pow(10, originalSeedLength);
       let observacion = seedsSet.has(xi) ? 'Secuencia degenerada' : '';
 
+      if (seedsSet.has(xi) && !this.degenerationIteration) {
+          this.degenerationIteration = i;
+          this.sequencePeriod = i - Array.from(seedsSet).indexOf(xi);
+      }
       if (seedsSet.has(xi) && !degenerationFound) {
         this.degenerationIteration = i;
         firstOccurrence = Array.from(seedsSet).indexOf(xi) + 1;
@@ -119,8 +131,8 @@ export class ProdmedComponent implements OnInit {
       currentSeed2 = xi;
     }
 
-    if (degenerationFound && firstOccurrence !== null) {
-      this.sequencePeriod = this.degenerationIteration as number - firstOccurrence;
+    if (degenerationFound && firstOccurrence !== undefined) {
+      this.sequencePeriod = (this.degenerationIteration as number) - firstOccurrence;
     } else {
       this.degenerationIteration = 'N/A';
       this.sequencePeriod = 'N/A';
