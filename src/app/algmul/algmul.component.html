@@ -1,84 +1,57 @@
 <app-header></app-header>
 
 <body>
-    <div class="form-container">
-      <h2>Algoritmo Multiplicativo</h2>
-      <form id="orderForm" [formGroup]="orderForm">
-      
-        <div class="form-group">
-          <label for="semilla">Semilla Xo</label>
-          <input type="number" class="form-control" formControlName="semilla" placeholder="Ingrese una semilla Xo">
-        </div>
-        
-        <div class="form-group">
-          <label for="k">Valor de k</label>
-          <input type="number" class="form-control" formControlName="k" placeholder="Ingrese el valor de k">
-        </div>
-
-        <div class="form-group">
-          <label for="p">Periodo (p)</label>
-          <input type="number" class="form-control" formControlName="p" placeholder="Ingrese el periodo p">
-        </div>
-
-        <div class="form-group">
-          <label for="limite">Limite</label>
-          <input type="number" class="form-control" formControlName="limite" placeholder="Ingrese la cantidad de numeros a generar">
-        </div>
-        <div class="form-group">
-          <label>Selecciona la fórmula para calcular "a":</label>
-          <div>
-            <input type="radio" formControlName="formulaA" value="1"> 3 + 8k
-            <input type="radio" formControlName="formulaA" value="2"> 5 + 8k
-          </div>
-        </div>
-
-        <div class="form-group">
-          <button type="button" class="btn-submit" (click)="submitForm()">Generar</button>
-          <br>
-          <button type="button" class="btn-clear" (click)="clearForm()">Limpiar</button>
-        </div>
-      </form>
-
-      <div class="card">
-        <div class="card-body">
-          <h5 class="card-title">Información de la Secuencia</h5>
-        
-          <p class="card-text">Valor de g: {{ g }}</p>
-          <p class="card-text">Valor de m: {{ m }}</p>
-          <p class="card-text">Valor de a: {{ a }}</p>
-
-
-        </div>
+  <div class="form-container">
+    <h2>Ejercicio 3</h2>
+    <form id="orderForm" [formGroup]="orderForm">
+      <div class="form-group">
+        <label for="anosDeUso">Numero de iteraciones</label>
+        <input type="number" class="form-control" formControlName="numIteraciones" placeholder="Ingrese el número de iteraciones">
       </div>
-    </div>
+      <div class="form-group">
+        <button type="button" class="btn-submit" (click)="submitForm()">Generar</button>
+        <br>
+        <button type="button" class="btn-clear" (click)="clearForm()">Limpiar</button>
+      </div>
+    </form>
+    
+  </div>
 
     <!-- Tabla -->
-    <div class="table-container">
-      <h2>Números Generados</h2>
+    <div class="table-container" *ngIf="gameResults.length > 0">
+      <h2>Resultados del Juego</h2>
       <div class="table-scrollable">
         <table>
           <thead>
             <tr>
-              <th>i</th>
-              <th>Operacion</th>
-              <th>Xi</th>
-              <th>Ri</th>
-              <th>Observaciones</th>
+              <th>Lanzamiento</th>
+              <th>Resultado</th>
+              <th>Ganancia/Pérdida</th>
+              <th>Total Acumulado</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let NSA of numeros">
-              <td>{{ NSA.i }}</td>
-              <td>{{ NSA.semilla }}</td> 
-              <td>{{ NSA.xi }}</td>
-              <td>{{ NSA.ri }}</td>
-              <td>{{ NSA.observacion }}</td>
+            <tr *ngFor="let result of gameResults; let i = index">
+              <td>{{ i + 1 }}</td>
+              <td>{{ result.result }}</td>
+              <td>{{ result.gainLoss }}</td>
+              <td>{{ result.totalAccumulated }}</td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
 
+    <div class="card" *ngIf="gameResults.length > 0">
+      <div class="card-body">
+        <h5 class="card-title">Resultado Final</h5>
+        <p class="card-text">{{ winLossMessage }}</p>
+      </div>
+    </div>
+
+
+    
+    
 </body>
 
 <app-footer></app-footer>

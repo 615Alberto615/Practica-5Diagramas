@@ -2,13 +2,13 @@ import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import Swal from 'sweetalert2';
 
-interface NSA {
-  i: number;
-  semilla: number;
-  yi: number; 
-  xi: number;
-  ri: number;
-  observacion: string;
+interface GameResult {
+  launch: number;
+  die1: number;
+  die2: number;
+  sum: number;
+  gainLoss: number;
+  totalAccumulated: number;
 }
 
 @Component({
@@ -18,146 +18,73 @@ interface NSA {
 })
 export class AlglinComponent implements OnInit {
   orderForm: FormGroup;
-  numeros: NSA[] = [];
-  degenerationIteration: number | string = 'N/A';
-  sequencePeriod: number | string = 'N/A';
-  g: number | string = 'N/A';
-  m: number | string = 'N/A';
-  c: number | string = 'N/A';
-  a: number | string = 'N/A';
-  periodReachedCount: number = 0; 
+  gameResults: GameResult[] = [];
 
   constructor(private fb: FormBuilder) {
     this.orderForm = this.fb.group({
-      semilla: [''],
-      k: [''],
-      p: [''],
-      limite: ['']
+      numJuegos: [''],
+      costoJuego: [''],
+      gananciaJugador: ['']
     });
   }
 
   ngOnInit() {}
 
-  clearForm() {
-    this.orderForm.reset();
-    this.numeros = [];
-    this.degenerationIteration = 'N/A';
-    this.sequencePeriod = 'N/A';
-    this.g = 'N/A';
-    this.m = 'N/A';
-    this.c = 'N/A';
-    this.a = 'N/A';
+  private rollDice(): number {
+    return Math.floor(Math.random() * 6) + 1;
   }
 
-  isPrime(num: number): boolean {
-    for(let i = 2, sqrt = Math.sqrt(num); i <= sqrt; i++)
-      if(num % i === 0) return false;
-    return num > 1;
+  get houseWins(): number {
+    return this.gameResults.filter(result => result.gainLoss === -this.orderForm.value.costoJuego).length;
   }
 
-  findClosestPrime(m: number): number {
-    let lower = m - 1;
-    let upper = m + 1;
+  get playerWins(): number {
+    return this.gameResults.filter(result => result.gainLoss === this.orderForm.value.gananciaJugador).length;
+  }
 
-    while (true) {
-      if (this.isPrime(lower)) return lower;
-      if (this.isPrime(upper)) return upper;
+  get totalHouseGain(): number {
+    return this.gameResults.reduce((acc, result) => acc + result.gainLoss, 0);
+  }
 
-      lower--;
-      upper++;
+  private simulateGame(gamesCount: number, costoJuego: number, gananciaJugador: number) {
+    this.gameResults = [];
+    for (let i = 0; i < gamesCount; i++) {
+      const die1 = this.rollDice();
+      const die2 = this.rollDice();
+      const sum = die1 + die2;
+      const gainLoss = sum === 7 ? gananciaJugador : -costoJuego;
+      this.gameResults.push({
+        launch: i + 1,
+        die1,
+        die2,
+        sum,
+        gainLoss,
+        totalAccumulated: (this.gameResults[i - 1]?.totalAccumulated || 0) + gainLoss
+      });
     }
   }
 
   submitForm() {
-    const formValue = this.orderForm.value;
-    const semilla = formValue.semilla;
-    const k = formValue.k;
-    const p = formValue.p;
-    const limite = formValue.limite;
-    let currentSeed = semilla;
-    let seedsSet = new Set();
-    if (!Number.isInteger(semilla) || !Number.isInteger(k) || !Number.isInteger(p) || !Number.isInteger(limite)) {
+    const numJuegos = this.orderForm.get('numJuegos')?.value;
+    const costoJuego = this.orderForm.get('costoJuego')?.value;
+    const gananciaJugador = this.orderForm.get('gananciaJugador')?.value;
+
+    if (!Number.isInteger(+numJuegos) || numJuegos <= 0 ||
+        !Number.isInteger(+costoJuego) || costoJuego <= 0 ||
+        !Number.isInteger(+gananciaJugador) || gananciaJugador <= 0) {
       Swal.fire({
         title: 'Error',
-        text: 'Por favor, ingresa solo números enteros.',
+        text: 'Por favor, ingresa números enteros positivos para el número de juegos, el costo del juego y la ganancia del jugador.',
         icon: 'error'
       });
-      return; // Salir del método
-    }
-    if (!p || p < 0) {
-      Swal.fire({
-        title: 'Error',
-        text: 'Por favor, llena todos los campos con numeros enteros.',
-        icon: 'error'
-      });
-      return; // Salir del método
-    }
-    if (!semilla  || semilla < 0) {
-      Swal.fire({
-        title: 'Error',
-        text: 'Por favor, llena todos los campos con numeros enteros.',
-        icon: 'error'
-      });
-      return; // Salir del método
-    }
-    if (!k  || k < 0) {
-      Swal.fire({
-        title: 'Error',
-        text: 'Por favor, llena todos los campos con numeros enteros.',
-        icon: 'error'
-      });
-      return; // Salir del método
-    }
-    if (!limite || limite < 0 ) {
-      Swal.fire({
-        title: 'Error',
-        text: 'Por favor, llena todos los campos con numeros enteros.',
-        icon: 'error'
-      });
-      return; // Salir del método
+      return;
     }
 
+    this.simulateGame(numJuegos, costoJuego, gananciaJugador);
+  }
 
-
-    // Calculamos g, m, c y a
-    this.g = Math.floor(Math.log(p) / Math.log(2));
-
-    this.m = Math.floor(Math.pow(2, this.g));
-
-    this.c = this.findClosestPrime(this.m);
-    this.a = Math.floor(1 + 4 * k);
-
-
-    for (let i = 1; i <= limite+1; i++) {
-      let yi = ((this.a * currentSeed) + this.c) % this.m;
-      let ri = yi / (this.m-1);
-      let observacion = seedsSet.has(yi) ? 'Secuencia degenerada' : '';
-
-      if (seedsSet.has(yi) && !this.degenerationIteration) {
-        this.degenerationIteration = i;
-        this.sequencePeriod = i - Array.from(seedsSet).indexOf(yi);
-      }
-
-      seedsSet.add(yi);
-
-      this.numeros.push({
-        i: i,
-        semilla: currentSeed,
-        yi: yi,
-        xi: yi, // En este caso, xi es igual a yi
-        ri: ri,
-        observacion: observacion
-      });
-
-      currentSeed = yi;
-    }
-
-    Swal.fire({
-      title: 'Números Generados',
-      text: 'Se han generado los números aleatorios con éxito.',
-      icon: 'success'
-    });
-
-    // resetear el formulario
+  clearForm() {
+    this.orderForm.reset();
+    this.gameResults = [];
   }
 }

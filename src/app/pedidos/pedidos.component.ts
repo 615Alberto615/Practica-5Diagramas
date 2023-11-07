@@ -19,13 +19,14 @@ interface NSA {
 export class PedidosComponent implements OnInit {
   orderForm: FormGroup;
   numeros: NSA[] = [];
-  degenerationIteration: number | string = 'N/A';
-  sequencePeriod: number | string = 'N/A';  
+  NUM_ITERATIONS = 0;
+  bestSolution: [number, number] | null = null;
+  Z = Infinity; 
+  iterationBestSolution: number | null = null;  
 
   constructor(private fb: FormBuilder) {
     this.orderForm = this.fb.group({
-      semilla: [''],
-      limite: ['']
+      numIteraciones: ['']
     });
   }
 
@@ -34,39 +35,48 @@ export class PedidosComponent implements OnInit {
   clearForm() {
     this.orderForm.reset();
     this.numeros = [];
-    this.degenerationIteration = 'N/A';
-    this.sequencePeriod = 'N/A';
   }
-  
+  generate_rx(): number {
+    return Math.random();
+  }
+
+  Simulation(): void {
+    for (let i = 0; i < this.NUM_ITERATIONS; i++) {
+      let rx1c = this.generate_rx();
+      let rx2c = this.generate_rx();
+      let xc1 = Math.round(1000 * rx1c); // Genera aleatorio entre 0 y 1000
+    let xc2 = Math.round(5 + 95 * rx2c); // Genera  aleatorio entre 5 y 100
+      //let xc1 = 22; // Genera aleatorio entre 0 y 1000
+      //let xc2 = 23;
+      let x1 = xc1;
+      let x2 = xc2;
+
+      let restriction = (6 * x1 + 3 * x2 >= 200) && (3 * x1 + 5 * x2 >= 180);
+
+      if (restriction) {
+          let Zc = Math.floor(2.5 * x1 + 2 * x2);  
+          if (Zc < this.Z) {
+              this.Z = Zc;
+              this.bestSolution = [x1, x2];
+              this.iterationBestSolution = i;
+          }
+      }
+    }
+  }
   submitForm() {
     const formValue = this.orderForm.value;
-    const semilla = formValue.semilla;
-    const limite = formValue.limite;
-    let currentSeed = semilla;
-    let degenerationFound = false;
-    let firstOccurrence: number | undefined;
-    let seedsSet = new Set<number>();
-    const originalSeedLength = currentSeed.toString().length;
+    const numIteraciones = formValue.numIteraciones;
 
-    if (!Number.isInteger(semilla) || !Number.isInteger(limite)) {
+    if (!Number.isInteger(numIteraciones)) {
       Swal.fire({
         title: 'Error',
-        text: 'Por favor, ingresa solo números enteros.',
+        text: 'Por favor, ingresa un número entero para las iteraciones.',
         icon: 'error'
       });
       return;
     }
 
-    if (!semilla && !limite) {
-      Swal.fire({
-        title: 'Error',
-        text: 'Por favor, llena todos los campos.',
-        icon: 'error'
-      });
-      return;
-    }
-
-    if (semilla <= 0 || limite <= 0) {
+    if (numIteraciones <= 0) {
       Swal.fire({
         title: 'Error',
         text: 'Solo se permite números positivos > 0.',
@@ -74,60 +84,11 @@ export class PedidosComponent implements OnInit {
       });
       return;
     }
-
-    if (semilla.toString().length <= 3) {
-      Swal.fire({
-        title: 'Error',
-        text: 'La semilla debe tener más de 3 dígitos.',
-        icon: 'error'
-      });
-      return;
-    }
-
-    for (let i = 1; i <= limite; i++) {
-      let yi = currentSeed * currentSeed;
-      let yiStr = yi.toString();
-      let seedLengthDifference = yiStr.length - originalSeedLength;
-
-      if (seedLengthDifference % 2 !== 0) {
-          yiStr = "0" + yiStr;
-          seedLengthDifference++;
-      }
-
-      let xi = parseInt(yiStr.slice(seedLengthDifference / 2, seedLengthDifference / 2 + originalSeedLength), 10);
-      let ri = xi / Math.pow(10, originalSeedLength);
-      let observacion = seedsSet.has(xi) ? 'Secuencia degenerada' : '';
-
-      if (seedsSet.has(xi) && !degenerationFound) {
-        this.degenerationIteration = i;
-        firstOccurrence = Array.from(seedsSet).indexOf(xi) + 1;
-        degenerationFound = true;
-      }
-
-      seedsSet.add(xi);
-
-      this.numeros.push({
-        i: i,
-        semilla: currentSeed,
-        yi: yi,
-        xi: xi,
-        ri: ri,
-        observacion: observacion
-      });
-
-      currentSeed = xi;
-    }
-
-    if (degenerationFound && firstOccurrence !== undefined) {
-      this.sequencePeriod = (this.degenerationIteration as number) - firstOccurrence;
-    } else {
-      this.degenerationIteration = 'N/A';
-      this.sequencePeriod = 'N/A';
-    }
-
+    this.NUM_ITERATIONS = numIteraciones;  // Actualizamos la cantidad de iteraciones
+    this.Simulation();
     Swal.fire({
-      title: 'Números Generados',
-      text: 'Se han generado los números aleatorios con éxito.',
+      title: 'Simulacion generada con éxito',
+      text: 'Se ha generado la simulación con éxito.',
       icon: 'success'
     });
   }

@@ -2,13 +2,11 @@ import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import Swal from 'sweetalert2';
 
-interface NSA {
-  i: number;
-  semilla: number;
-  yi: number; 
-  xi: number;
-  ri: number;
-  observacion: string;
+interface GameResult {
+  launch: number;
+  result: string;
+  gainLoss: number;
+  totalAccumulated: number;
 }
 
 @Component({
@@ -18,22 +16,35 @@ interface NSA {
 })
 export class AlgmulComponent implements OnInit {
   orderForm: FormGroup;
-  numeros: NSA[] = [];
-  degenerationIteration: number | string = 'N/A';
-  sequencePeriod: number | string = 'N/A';
-  g: number | string = 'N/A';
-  m: number | string = 'N/A';
-  c: number | string = 'N/A';
-  a: number | string = 'N/A';
-  periodReachedCount: number = 0; 
+  NUM_ITERATIONS = 0;
+  gameResults: GameResult[] = [];
+  totalAccumulated: number = 0;
+ 
+  private throwCoins(): string[] {
+    const outcomes = ['Cara', 'Sello'];
+    return Array(3).fill(null).map(() => outcomes[Math.floor(Math.random() * 2)]);
+  }
+  private simulateGame() {
+    this.gameResults = [];
+    this.totalAccumulated = 0;
 
+    for (let i = 0; i < this.NUM_ITERATIONS; i++) {
+      const coins = this.throwCoins();
+      const allSame = coins.every(coin => coin === coins[0]);
+      const gainLoss = allSame ? 5 : -3;
+      this.totalAccumulated += gainLoss;
+
+      this.gameResults.push({
+        launch: i + 1,
+        result: coins.join(', '),
+        gainLoss,
+        totalAccumulated: this.totalAccumulated
+      });
+    }
+  }
   constructor(private fb: FormBuilder) {
     this.orderForm = this.fb.group({
-      semilla: [''],
-      k: [''],
-      p: [''],
-      limite: [''],
-      formulaA: ['1'] 
+      numIteraciones: ['']
     });
   }
 
@@ -41,128 +52,48 @@ export class AlgmulComponent implements OnInit {
 
   clearForm() {
     this.orderForm.reset();
-    this.numeros = [];
-    this.degenerationIteration = 'N/A';
-    this.sequencePeriod = 'N/A';
-    this.g = 'N/A';
-    this.m = 'N/A';
-    this.c = 'N/A';
-    this.a = 'N/A';
+    this.NUM_ITERATIONS = 0;
+    this.gameResults = [];
+    this.totalAccumulated = 0;
+    
+
+  }
+  generate_rx(): number {
+    return Math.random();
   }
 
-  isPrime(num: number): boolean {
-    for(let i = 2, sqrt = Math.sqrt(num); i <= sqrt; i++)
-      if(num % i === 0) return false;
-    return num > 1;
-  }
-
-  findClosestPrime(m: number): number {
-    let lower = m - 1;
-    let upper = m + 1;
-
-    while (true) {
-      if (this.isPrime(lower)) return lower;
-      if (this.isPrime(upper)) return upper;
-
-      lower--;
-      upper++;
+  get winLossMessage(): string {
+    if (this.totalAccumulated === 0) {
+      return 'No hubo ganancia ni pérdida.';
     }
+    return this.totalAccumulated > 0 ?
+      `¡Felicidades! Has ganado un total de ${this.totalAccumulated} Bs.` :
+      `Lo sentimos, has perdido un total de ${Math.abs(this.totalAccumulated)} Bs.`;
   }
 
+  
   submitForm() {
     const formValue = this.orderForm.value;
-    const semilla = formValue.semilla;
-    const k = formValue.k;
-    const p = formValue.p;
-    const limite = formValue.limite;
-    let currentSeed = semilla;
-    let seedsSet = new Set();
-    const formulaA = formValue.formulaA;
-    if (!Number.isInteger(semilla) || !Number.isInteger(k) || !Number.isInteger(p) || !Number.isInteger(limite)) {
+    const numIteraciones = formValue.numIteraciones;
+
+    if (!Number.isInteger(numIteraciones) || numIteraciones <= 0) {
       Swal.fire({
         title: 'Error',
-        text: 'Por favor, ingresa solo números enteros.',
+        text: 'Por favor, ingresa un número entero positivo para las iteraciones.',
         icon: 'error'
       });
-      return; // Salir del método
-    }
-    if (!p || p < 0) {
-      Swal.fire({
-        title: 'Error',
-        text: 'Por favor, llena todos los campos con numeros enteros.',
-        icon: 'error'
-      });
-      return; // Salir del método
-    }
-    if (!semilla  || semilla < 0) {
-      Swal.fire({
-        title: 'Error',
-        text: 'Por favor, llena todos los campos con numeros enteros.',
-        icon: 'error'
-      });
-      return; // Salir del método
-    }
-    if (!k  || k < 0) {
-      Swal.fire({
-        title: 'Error',
-        text: 'Por favor, llena todos los campos con numeros enteros.',
-        icon: 'error'
-      });
-      return; // Salir del método
-    }
-    if (!limite || limite < 0 ) {
-      Swal.fire({
-        title: 'Error',
-        text: 'Por favor, llena todos los campos con numeros enteros.',
-        icon: 'error'
-      });
-      return; // Salir del método
+      return;
     }
 
-
-
-    // Calculamos g, m, c y a
-    this.g = Math.floor(Math.log(p) / Math.log(2) + 2);
-    this.m = Math.floor(Math.pow(2, this.g));
-
-    // Calculamos "a" basado en la opción seleccionada
-    if (formulaA === '1') {
-      this.a = 3 + 8 * k;
-    } else {
-      this.a = 5 + 8 * k;
-    }
-
-
-    for (let i = 1; i <= limite+1; i++) {
-      let yi = (this.a * currentSeed) % this.m;  // Método multiplicativo
-      let ri = yi / (this.m - 1);
-      let observacion = seedsSet.has(yi) ? 'Secuencia degenerada' : '';
-
-      if (seedsSet.has(yi) && !this.degenerationIteration) {
-        this.degenerationIteration = i;
-        this.sequencePeriod = i - Array.from(seedsSet).indexOf(yi);
-      }
-
-      seedsSet.add(yi);
-
-      this.numeros.push({
-        i: i,
-        semilla: currentSeed,
-        yi: yi,
-        xi: yi, // En este caso, xi es igual a yi
-        ri: ri,
-        observacion: observacion
-      });
-
-      currentSeed = yi;
-    }
+    this.NUM_ITERATIONS = numIteraciones;
+    this.simulateGame();  // Llama al método que simula el juego
 
     Swal.fire({
-      title: 'Números Generados',
-      text: 'Se han generado los números aleatorios con éxito.',
+      title: 'Simulación generada con éxito',
+      text: 'Se ha generado la simulación con éxito.',
       icon: 'success'
     });
-
-    // resetear el formulario
+    
   }
 }
+

@@ -18,6 +18,9 @@ import { HttpClientModule } from '@angular/common/http';
 import { ProdmedComponent } from './prodmed/prodmed.component';
 import { AlglinComponent } from './alglin/alglin.component';
 import { AlgmulComponent } from './algmul/algmul.component';
+import { Ej5Component } from './ej5/ej5.component';
+import { Ej6Component } from './ej6/ej6.component';
+import { Ej7Component } from './ej7/ej7.component';
 @NgModule({
   declarations: [
     AppComponent,
@@ -30,6 +33,9 @@ import { AlgmulComponent } from './algmul/algmul.component';
     ProdmedComponent,
     AlglinComponent,
     AlgmulComponent,
+    Ej5Component,
+    Ej6Component,
+    Ej7Component,
     
   ],
   imports: [

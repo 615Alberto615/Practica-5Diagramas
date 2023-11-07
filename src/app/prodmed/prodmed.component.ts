@@ -2,16 +2,6 @@ import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import Swal from 'sweetalert2';
 
-interface NSA {
-  i: number;
-  semilla: number;
-  semilla1: number;
-  yi: number; 
-  xi: number;
-  ri: number;
-  observacion: string;
-}
-
 @Component({
   selector: 'app-prodmed',
   templateUrl: './prodmed.component.html',
@@ -19,50 +9,38 @@ interface NSA {
 })
 export class ProdmedComponent implements OnInit {
   orderForm: FormGroup;
-  numeros: NSA[] = [];
-  degenerationIteration: number | string = 'N/A';
-  sequencePeriod: number | string = 'N/A';
+  capital: number = 0;
+  time: number = 1;
+  interest: number | null = null;
+  totalAmount: number | null = null;
+  calculations: { capital: number; time: number; interest: number; totalAmount: number }[] = [];
 
   constructor(private fb: FormBuilder) {
     this.orderForm = this.fb.group({
-      semilla: [''],
-      semilla1: [''],
-      limite: ['']
+      capital: [''],
+      time: ['']
     });
   }
 
-  ngOnInit() {}
+  ngOnInit() {
+    // La simulación inicial se puede hacer aquí si es necesario
+  }
 
   clearForm() {
     this.orderForm.reset();
-    this.numeros = [];
-    this.degenerationIteration = 'N/A';
-    this.sequencePeriod = 'N/A';
+    this.capital = 0;
+    this.time = 1;
+    this.interest = null;
+    this.totalAmount = null;
+    this.calculations = [];
   }
 
   submitForm() {
     const formValue = this.orderForm.value;
-    const semilla = formValue.semilla;
-    const semilla1 = formValue.semilla1;
-    const limite = formValue.limite;
-    let currentSeed1 = semilla;
-    let currentSeed2 = semilla1;
-    let seedsSet = new Set();
-   
-    const originalSeedLength = currentSeed1.toString().length;
+    this.capital = formValue.capital;
+    this.time = formValue.time;
 
-    let degenerationFound = false;
-    let firstOccurrence: number | undefined;
-    if (!Number.isInteger(semilla) || !Number.isInteger(semilla1) || !Number.isInteger(limite)) {
-      Swal.fire({
-        title: 'Error',
-        text: 'Por favor, ingresa solo números enteros.',
-        icon: 'error'
-      });
-      return; // Salir del método
-    }
-
-    if (!semilla && !limite && !semilla1) {
+    if (!this.capital || !this.time) {
       Swal.fire({
         title: 'Error',
         text: 'Por favor, llena todos los campos.',
@@ -71,8 +49,7 @@ export class ProdmedComponent implements OnInit {
       return; // Salir del método
     }
 
-    // Validación: números positivos
-    if (semilla <= 0 || limite <= 0 || semilla1 <= 0) {
+    if (this.capital <= 0 || this.time <= 0) {
       Swal.fire({
         title: 'Error',
         text: 'Solo se permite números positivos > 0.',
@@ -80,70 +57,44 @@ export class ProdmedComponent implements OnInit {
       });
       return; // Salir del método
     }
-
-    // Validación: semilla con > 3 dígitos
-    if (semilla.toString().length <= 2 || semilla1.toString().length <= 2) {
+    if (!Number.isInteger(this.time)) {
       Swal.fire({
         title: 'Error',
-        text: 'La semilla debe tener más de 2 dígitos.',
+        text: 'El tiempo en años debe ser un número entero.',
         icon: 'error'
       });
       return; // Salir del método
     }
+    
 
-    for (let i = 1; i <= limite; i++) {
-      let yi = currentSeed1 * currentSeed2;
-      let yiStr = yi.toString();
-      let seedLengthDifference = yiStr.length - originalSeedLength;
+    let rate = this.getInterestRate(this.capital);
+    this.interest = this.capital * rate * this.time;
+    this.totalAmount = this.capital + this.interest;
 
-      if (seedLengthDifference % 2 !== 0) {
-          yiStr = "0" + yiStr;
-          seedLengthDifference++;
-      }
-
-      let xi = parseInt(yiStr.slice(seedLengthDifference / 2, seedLengthDifference / 2 + originalSeedLength), 10);
-      let ri = xi / Math.pow(10, originalSeedLength);
-      let observacion = seedsSet.has(xi) ? 'Secuencia degenerada' : '';
-
-      if (seedsSet.has(xi) && !this.degenerationIteration) {
-          this.degenerationIteration = i;
-          this.sequencePeriod = i - Array.from(seedsSet).indexOf(xi);
-      }
-      if (seedsSet.has(xi) && !degenerationFound) {
-        this.degenerationIteration = i;
-        firstOccurrence = Array.from(seedsSet).indexOf(xi) + 1;
-        degenerationFound = true;
-      }
-
-      seedsSet.add(xi);
-
-      this.numeros.push({
-        i: i,
-        semilla: currentSeed1,
-        semilla1: currentSeed2,
-        yi: yi,
-        xi: xi,
-        ri: ri,
-        observacion: observacion
-      });
-
-      currentSeed1 = currentSeed2;
-      currentSeed2 = xi;
-    }
-
-    if (degenerationFound && firstOccurrence !== undefined) {
-      this.sequencePeriod = (this.degenerationIteration as number) - firstOccurrence;
-    } else {
-      this.degenerationIteration = 'N/A';
-      this.sequencePeriod = 'N/A';
-    }
-
-    Swal.fire({
-      title: 'Números Generados',
-      text: 'Se han generado los números aleatorios con éxito.',
-      icon: 'success'
+    this.calculations.push({
+      capital: this.capital,
+      time: this.time,
+      interest: this.interest,
+      totalAmount: this.totalAmount
     });
 
+    
 
+    Swal.fire({
+      title: 'Calculo realizado',
+      icon: 'success'
+    });
   }
+
+  getInterestRate(capital: number): number {
+    if (capital <= 10000) {
+      return 0.035;
+    } else if (capital <= 100000) {
+      return 0.040;
+    } else {
+      return 0.050;
+    }
+  }
+
+ 
 }
